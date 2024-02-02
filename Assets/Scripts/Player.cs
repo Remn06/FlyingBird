@@ -1,57 +1,61 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
-using UnityEditor.SearchService;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class Player : MonoBehaviour
 {
-    public GameObject gameManagerObj;
-    private GameManager gameManagerScript;
+    public float moveStep;
+    [SerializeField] private Rigidbody2D rb;
+    [SerializeField] private GameManager gameManager;
 
-    private Rigidbody2D rb;
-    private float moveDirection = 0.00375f;
-
-    void Start()
-    {
-        // Application.targetFrameRate = Screen.currentResolution.refreshRateRatio;
-        gameManagerScript = gameManagerObj.GetComponent<GameManager>();
-        rb = GetComponent<Rigidbody2D>();
-    }
-
-    private void Update()
+    void Update()
     {
         Move();
-    }
 
-    public void Fly()
-    {
-        rb.velocity = Vector2.zero;
-        rb.AddForce(Vector2.up * 225, ForceMode2D.Force);
+        if (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began || Input.GetMouseButtonDown(0) == true)
+        {
+            Fly();
+        }
     }
 
     private void Move()
     {
-        transform.position = new Vector2(transform.position.x + moveDirection, transform.position.y);
+        transform.position = new Vector3(transform.position.x + moveStep * Time.deltaTime, transform.position.y);
     }
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        if (collision.gameObject.tag == "ReverseMovementBorder")
+        if (collision.gameObject.tag == "ReverseGoBorder")
         {
-            moveDirection *= -1;
-            Debug.Log(moveDirection);
-            gameManagerScript.SpawnObstacles(moveDirection);
+            moveStep *= -1;
+
+            if (gameManager.currentSpike != null)
+            {
+                gameManager.currentSpike.GetComponent<Obstacle>().DestroySelf();
+            }
+
+            gameManager.SpawnSpikes(moveStep);
         }
-        else if (collision.tag == "Obstacle")
+        else if (collision.gameObject.tag == "Spike")
         {
-            Death();
+            GameOver();
         }
     }
 
-    private void Death()
+    private void Fly()
     {
-        SceneManager.LoadScene("GameScene");
+        rb.velocity = Vector2.zero;
+        rb.AddForce(Vector2.up * 5, ForceMode2D.Impulse);
+    }
+
+    private void OnBecameInvisible()
+    {
+        GameOver();
+    }
+
+    private void GameOver()
+    {
+        SceneManager.LoadScene("MainMenuScene");
     }
 }
